@@ -5,18 +5,37 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <fcntl.h>
 
 #define MAX_LINE 80 //max length command
 
-void the_fork(char *s[], bool waiting) {
+/*
+void redirection(char *s[], int offset) {
+    int fd = open(s[offset], O_RDWR);
+    dup2(fd, STDOUT_FILENO);
+    close(fd);
+}
+*/
+
+void the_fork(char *s[], bool waiting, int offset, char* fname) {
     pid_t pid;
     pid = fork();
+    int fd = 0;
+
+    printf("%s\n", fname);    
+    
+    if(offset != 0) {
+        fd = open(fname, O_RDWR | O_CREAT);
+        if(fd == -1){ printf("didnt open the file\n");}
+        if(dup2(fd, STDOUT_FILENO) < 0) { printf("didnt duplicate fd\n");}
+    }
 
     if (pid < 0) { 
 		fprintf(stderr, "Fork Failed");
 	}
 	else if (pid == 0) { /* child process */
 		execvp(s[0], s);
+        //if(offset != 0) {close(fd);}
 		printf("child process\n");
 	}
 	else { /* parent process */
@@ -29,14 +48,19 @@ void the_fork(char *s[], bool waiting) {
         //wait(NULL);
 		printf("Child Complete\n");
 	}
+    if(offset != 0) { close(fd);}
 }
 
 void parse(char* s) {
     const char break_chars[] = " \t";
     char* p;
+    char* fname = "no file";
     char *tokens[BUFSIZ];
     int counter = 0;
+    int redirection_offset = 0;
     bool waiting = true;
+    bool redir_output = false;
+    bool redir_input = false;
 
     p = strtok(s, break_chars);
     tokens[counter] = p;
@@ -50,18 +74,29 @@ void parse(char* s) {
             waiting = false;
             break;
         }
+        else if (p != NULL && strcmp(p, ">") == 0) {
+            //check for redirection output and dont copy "">"" or filename to tokens
+            redir_output = true;
+            redirection_offset = counter + 1;
+            p = strtok(NULL, break_chars);
+            fname = p; //copy the file name
+            break;
+        }
         tokens[counter] = p;
     }
     
     for(int i = 0; i < counter; ++i) {
         printf("%d:%s\n", i, tokens[i]);
     }
-
-  //  if(strcmp(tokens[counter-1], "&") == 0) {
-   //     printf("& at the end\n");
-   // }
-
-    the_fork(tokens, waiting);
+/*
+    if(strcmp(tokens[counter-1], "&") == 0) {
+        printf("& at the end\n");
+    }
+    if (redir_output == true) {
+        redirection(tokens, redirection_offset);
+    }
+*/
+    the_fork(tokens, waiting, redirection_offset, fname);
 }
 
 int main(void) {

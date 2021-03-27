@@ -21,8 +21,8 @@ void the_fork(char *s[], bool waiting, char* fname, bool output, bool input, boo
     pid_t pid;
     pid = fork(); 
     
-    if(output == true || input == true) {
-        if((open_file == false) &&((fd = open(fname, O_RDWR | O_CREAT)) == -1)){ 
+    if((output == true || input == true) && (open_file == false) ){
+        if(((fd = open(fname, O_RDWR | O_CREAT)) == -1)){ 
             printf("Didnt open the file\n");
         }
         if((output == true) && (dup2(fd, STDOUT_FILENO) < 0)) { // > used
@@ -33,11 +33,6 @@ void the_fork(char *s[], bool waiting, char* fname, bool output, bool input, boo
         }
         open_file = true;
     }
-    // if(pipe_b == true) {
-    //     if(pipe(fdp) < 0) {
-    //         printf("Pipe() failed\n");
-    //     }
-    // }
 
     if (pid < 0) { 
 		fprintf(stderr, "Fork Failed");
@@ -103,7 +98,6 @@ void parse(char* s) {
 
     while(p != NULL){
         ++counter;
-      //printf("token was: %s\n", p);
         p = strtok(NULL, break_chars);
         if(p != NULL && strcmp(p, "&") == 0) {
             waiting = false;
@@ -143,6 +137,7 @@ int main(void) {
     while(should_run) {
         printf("osh> ");
         fflush(stdout);
+        //fflush(stdin);
         
         bool no_command = false;
         
